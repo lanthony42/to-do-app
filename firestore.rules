@@ -1,0 +1,28 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {    
+    // Rule to restrict access to authenticated users only
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Rule to check if the document belongs to the authenticated user
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Match rules for user-specific data
+    match /users/{userId} {      
+      // Restrict access to lists and tasks to the document owner only
+      match /lists/{listId} {        
+        allow read, write: if isSignedIn() && isOwner(userId);
+
+        // Match tasks within lists
+        match /tasks/{taskId} {
+          allow read, write: if isSignedIn() && isOwner(userId);
+        }
+      }
+    }
+  }
+}
